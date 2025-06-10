@@ -95,10 +95,22 @@ def create_openai_async_client(
 
     return AsyncOpenAI(**merged_configs)
 
+# Default settings for the OpenAI client
+# @retry(
+#     stop=stop_after_attempt(3),
+#     wait=wait_exponential(multiplier=1, min=4, max=10),
+#     retry=(
+#         retry_if_exception_type(RateLimitError)
+#         | retry_if_exception_type(APIConnectionError)
+#         | retry_if_exception_type(APITimeoutError)
+#         | retry_if_exception_type(InvalidResponseError)
+#     ),
+# )
 
+# modified for Gemini rate limiting on free tier
 @retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=4, max=10),
+    stop=stop_after_attempt(8),
+    wait=wait_exponential(multiplier=3, min=10, max=60),
     retry=(
         retry_if_exception_type(RateLimitError)
         | retry_if_exception_type(APIConnectionError)

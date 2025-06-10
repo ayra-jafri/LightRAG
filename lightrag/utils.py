@@ -11,8 +11,10 @@ import os
 import re
 from dataclasses import dataclass
 from functools import wraps
-from hashlib import md5
-from typing import Any, Protocol, Callable, TYPE_CHECKING, List
+from hashlib import md5, sha256
+from pathlib import Path
+import pipmaster as pm
+from typing import Any, Protocol, Callable, TYPE_CHECKING, List, Optional
 import numpy as np
 from lightrag.prompt import PROMPTS
 from dotenv import load_dotenv
@@ -167,8 +169,12 @@ def setup_logger(
         enable_file_logging: Whether to enable logging to a file (defaults to True)
     """
     # Configure formatters
+    # detailed_formatter = logging.Formatter(
+    #     "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    # )
     detailed_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        "%(asctime)s - %(levelname)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
     )
     simple_formatter = logging.Formatter("%(levelname)s: %(message)s")
 

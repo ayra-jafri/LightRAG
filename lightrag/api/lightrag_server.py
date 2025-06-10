@@ -552,7 +552,8 @@ def configure_logging():
             "disable_existing_loggers": False,
             "formatters": {
                 "default": {
-                    "format": "%(levelname)s: %(message)s",
+                    "format": "%(asctime)s - %(levelname)s: %(message)s",
+                    "datefmt": "%Y-%m-%d %H:%M:%S",
                 },
                 "detailed": {
                     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",

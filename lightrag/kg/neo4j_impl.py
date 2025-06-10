@@ -66,10 +66,13 @@ class Neo4JStorage(BaseGraphStorage):
         PASSWORD = os.environ.get(
             "NEO4J_PASSWORD", config.get("neo4j", "password", fallback=None)
         )
+        # Default is 50 for networkx
+        # modified fallback from 50 to 400 
+        # as per https://github.com/HKUDS/LightRAG/issues/1356
         MAX_CONNECTION_POOL_SIZE = int(
             os.environ.get(
                 "NEO4J_MAX_CONNECTION_POOL_SIZE",
-                config.get("neo4j", "connection_pool_size", fallback=50),
+                config.get("neo4j", "connection_pool_size", fallback=400),
             )
         )
         CONNECTION_TIMEOUT = float(
