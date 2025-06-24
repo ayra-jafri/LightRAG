@@ -36,8 +36,14 @@ services:
     environment:
       - NEO4J_AUTH=${NEO4J_USERNAME}/${NEO4J_PASSWORD}
       - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_server_bolt_enabled=true
       - NEO4J_server_bolt_listen__address=0.0.0.0:7689
       - NEO4J_server_bolt_advertised__address=neo4j:7689
+      # - NEO4J_server_http_enabled=true
+      # - NEO4J_server_http_listen__address=:7474
+      # - NEO4J_server_https_enabled=false
+      - NEO4J_dbms_security_auth__enabled=false
+      # - NEO4J_server_default__listen__address=0.0.0.0
     volumes:
       - ./neo4j/plugins:/var/lib/neo4j/plugins  # This is something I did because for neo4j you need to download the APOC file.
       - lightrag_neo4j_import:/var/lib/neo4j/import

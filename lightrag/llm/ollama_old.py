@@ -32,7 +32,7 @@ from lightrag.utils import logger
 
 
 @retry(
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=1, min=4, max=10),
     retry=retry_if_exception_type(
         (RateLimitError, APIConnectionError, APITimeoutError)
@@ -50,7 +50,7 @@ async def _ollama_model_if_cache(
     kwargs.pop("max_tokens", None)
     # kwargs.pop("response_format", None) # allow json
     host = kwargs.pop("host", None)
-    timeout = kwargs.pop("timeout", None) or 600  # Default timeout 600s
+    timeout = kwargs.pop("timeout", None) or 1200  # Default timeout 300s
     kwargs.pop("hashing_kv", None)
     api_key = kwargs.pop("api_key", None)
     headers = {
@@ -60,6 +60,10 @@ async def _ollama_model_if_cache(
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 
+    # Log Ollama request details
+    logger.debug(f"Ollama request - Model: {model}, Host: {host}, Timeout: {timeout}")
+    logger.debug(f"Ollama request - Stream: {stream}, Headers: {headers}")
+    
     ollama_client = ollama.AsyncClient(host=host, timeout=timeout, headers=headers)
 
     try:
@@ -69,13 +73,21 @@ async def _ollama_model_if_cache(
         messages.extend(history_messages)
         messages.append({"role": "user", "content": prompt})
 
+        # Log the messages being sent to Ollama
+        logger.debug(f"Ollama messages: {messages}")
+        
         response = await ollama_client.chat(model=model, messages=messages, **kwargs)
+        
+        # Log Ollama response details
+        logger.debug(f"Ollama response received for model: {model}")
+        
         if stream:
             """cannot cache stream response and process reasoning"""
 
             async def inner():
                 try:
                     async for chunk in response:
+                        logger.debug(f"Ollama stream chunk: {chunk}")
                         yield chunk["message"]["content"]
                 except Exception as e:
                     logger.error(f"Error in stream response: {str(e)}")
@@ -90,6 +102,7 @@ async def _ollama_model_if_cache(
             return inner()
         else:
             model_response = response["message"]["content"]
+            logger.debug(f"Ollama non-stream response: {model_response[:200]}...")
 
             """
             If the model also wraps its thoughts in a specific tag,
@@ -99,6 +112,7 @@ async def _ollama_model_if_cache(
 
             return model_response
     except Exception as e:
+        logger.error(f"Ollama request failed: {str(e)}")
         try:
             await ollama_client._client.aclose()
             logger.debug("Successfully closed Ollama client after exception")
@@ -127,6 +141,10 @@ async def ollama_model_complete(
     if keyword_extraction:
         kwargs["format"] = "json"
     model_name = kwargs["hashing_kv"].global_config["llm_model_name"]
+    
+    logger.debug(f"Ollama model complete called with model: {model_name}")
+    logger.debug(f"Ollama prompt length: {len(prompt)} characters")
+    
     return await _ollama_model_if_cache(
         model_name,
         prompt,
@@ -146,12 +164,18 @@ async def ollama_embed(texts: list[str], embed_model, **kwargs) -> np.ndarray:
         headers["Authorization"] = f"Bearer {api_key}"
 
     host = kwargs.pop("host", None)
-    timeout = kwargs.pop("timeout", None) or 300  # Default time out 300s
+    timeout = kwargs.pop("timeout", None) or 600  # Default time out 90s
+
+    # Log Ollama embedding request details
+    logger.debug(f"Ollama embed request - Model: {embed_model}, Host: {host}")
+    logger.debug(f"Ollama embed request - Number of texts: {len(texts)}")
+    logger.debug(f"Ollama embed request - First text preview: {texts[0][:100]}...")
 
     ollama_client = ollama.AsyncClient(host=host, timeout=timeout, headers=headers)
 
     try:
         data = await ollama_client.embed(model=embed_model, input=texts)
+        logger.debug(f"Ollama embed response received - Embedding dimensions: {len(data['embeddings'])}x{len(data['embeddings'][0]) if data['embeddings'] else 0}")
         return np.array(data["embeddings"])
     except Exception as e:
         logger.error(f"Error in ollama_embed: {str(e)}")
